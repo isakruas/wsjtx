@@ -60,6 +60,7 @@
 #define NUM_SUPERFOX_SYMBOLS 153
 #define NUM_FT4_SYMBOLS 105
 #define NUM_FST4_SYMBOLS 160             //240/2 data + 5*8 sync
+#define NUM_TERN_SYMBOLS 85              //64 data + 3*7 Costas pilots
 #define NUM_CW_SYMBOLS 250
 #define MAX_NUM_SYMBOLS 250
 #define TX_SAMPLE_RATE 48000
@@ -301,6 +302,7 @@ private slots:
   void on_actionFT8_triggered();
   void on_actionFST4_triggered();
   void on_actionFST4W_triggered();
+  void on_actionTERN_triggered();
   void on_TxFreqSpinBox_valueChanged(int arg1);
   void on_actionSave_decoded_triggered();
   void on_actionQuickDecode_toggled (bool);

@@ -11,6 +11,26 @@
 
 Copyright 2001 - 2026 by Joe Taylor, K1JT, and the WSJT Development Team
 
+                     Release: WSJT-X 3.0.1+tern
+                            June 13, 2026
+                      -------------------------
+
+ Derivative build of WSJT-X 3.0.1 that adds TERN, an experimental HF
+ weak-signal mode.
+
+   - New mode TERN, with submodes A (27.2 s frame, 30 s slot, ~50 Hz)
+     and B (54.4 s frame, 60 s slot, ~25 Hz): 16-FSK with a CRC-aided
+     polar codeword and three Costas-7 sync arrays, decoded with a
+     Gauss-Markov channel tracker, plus cross-frame combining of
+     repeated transmissions.
+   - jt9 gains a --tern option for decoding TERN .wav files, and a
+     ternsim validation driver is included.
+   - Two pre-existing jt9 file-decode issues exposed by TERN are fixed.
+
+ TERN is vendored from https://github.com/isakruas/tern
+ (GPL-3.0-or-later). See lib/tern/README and samples/TERN/.
+
+
                         Release: WSJT-X 3.0.1
                              May 4, 2026
                       -------------------------

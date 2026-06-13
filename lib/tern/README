@@ -1,0 +1,21 @@
+TERN mode
+=========
+
+Native integration of the TERN HF weak-signal mode.
+
+The codec modules in this directory are vendored from the TERN reference
+implementation:
+
+    https://github.com/isakruas/tern
+    revision eaa9b11
+    Copyright 2026 Isak Paulo de Andrade Ruas
+    GPL-3.0-or-later
+
+Vendored modules (unchanged from upstream): tern_kinds, tern_params,
+tern_bits, tern_audio, tern_polar, tern_frame, tern_mod, tern_demod,
+tern_channel, tern_rng.
+
+WSJT-X integration written for this tree: tern_glue, tern_modem,
+tern_decode, gentern (TX/RX glue), and ternsim (validation driver).
+
+Licensed under the GNU GPL v3 or later, like WSJT-X (see ../../COPYING).

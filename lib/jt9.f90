@@ -33,7 +33,7 @@ program jt9
        bLowSidelobes = .false., nexp_decode_set = .false.,                   &
        have_ntol = .false.,multift8 = .false.,hidedupes = .false.,           &
        lft8lowth = .true.,lft8subpass = .true.,lwidedxcsearch = .true.
-  type (option) :: long_options(41) = [                                      &
+  type (option) :: long_options(42) = [                                      &
     option ('help', .false., 'h', 'Display this help message', ''),          &
     option ('shmem',.true.,'s','Use shared memory for sample data','KEY'),   &
     option ('tr-period', .true., 'p', 'Tx/Rx period, default SECONDS=60',    &
@@ -90,6 +90,7 @@ program jt9
     option ('fst4w', .false., 'Y', 'FST4W mode, print hash22 values', ''),   &
     option ('ft8', .false., '8', 'FT8 mode', ''),                            &
     option ('jt9', .false., '9', 'JT9 mode', ''),                            &
+    option ('tern', .false., 'B', 'TERN mode (submode via -b A|B)', ''),     &
     option ('quiet', .false., 'q', 'Quiet mode, no <DecodeFinished>', ''),   &
     option ('msk144', .false., 'k', 'MSK144 mode', ''),                      &
     option ('QSOprog', .true., 'Q', 'QSO progress (0-5), default PROGRESS=1',&
@@ -119,7 +120,7 @@ program jt9
   TRperiod=60.d0
 
   do
-     call getopt('hs:e:a:b:r:m:p:d:f:F:w:t:9876543WYqkTMUSZL:S:H:c:G:x:g:X:Q:C:R:N:E:D:',     &
+     call getopt('hs:e:a:b:r:m:p:d:f:F:w:t:9876543WYBqkTMUSZL:S:H:c:G:x:g:X:Q:C:R:N:E:D:',     &
           long_options,c,optarg,arglen,stat,offset,remain,.true.)
      if (stat .ne. 0) then
         exit
@@ -189,6 +190,8 @@ program jt9
            mode = 240
         case ('8')
            mode = 8
+        case ('B')
+           mode = 250
         case ('9')
            if (mode.lt.9.or.mode.eq.65) mode = mode + 9
         case ('T')
@@ -326,7 +329,7 @@ program jt9
            endif
            nhsym0=nhsym
            if(nhsym.ge.181 .and. mode.ne.240 .and. mode.ne.241 .and. &
-              mode.ne.242 .and. mode.ne.66) exit
+              mode.ne.242 .and. mode.ne.66 .and. mode.ne.250) exit
         endif
      enddo
      close(unit=wav%lun)

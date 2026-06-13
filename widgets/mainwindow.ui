@@ -4919,6 +4919,7 @@ QPushButton[state=&quot;ok&quot;] {
     <addaction name="actionJT9"/>
     <addaction name="actionJT65"/>
     <addaction name="actionQ65"/>
+    <addaction name="actionTERN"/>
     <addaction name="separator"/>
     <addaction name="actionMSK144"/>
     <addaction name="separator"/>
@@ -5422,6 +5423,14 @@ QPushButton[state=&quot;ok&quot;] {
    </property>
    <property name="text">
     <string>Q65</string>
+   </property>
+  </action>
+  <action name="actionTERN">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>TERN</string>
    </property>
   </action>
   <action name="actionSWL_Mode">

@@ -70,7 +70,7 @@ QString version (bool include_patch)
   QString v {TO_STRING__ (PROJECT_VERSION_MAJOR) "." TO_STRING__ (PROJECT_VERSION_MINOR)};
   if (include_patch)
     {
-      v += "." TO_STRING__ (PROJECT_VERSION_PATCH) + QString {BUILD_TYPE_REVISION};
+      v += "." TO_STRING__ (PROJECT_VERSION_PATCH) + QString {BUILD_TYPE_REVISION} + "+tern";
     }
 #else
   QString v {"Not for Release"};

@@ -93,7 +93,7 @@ message (STATUS "******************************************************")
 include (set_build_type)
 # RC 0 or omitted is a development build, GA is a General Availability release build
 set_build_type (GA)
-set (wsjtx_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}${BUILD_TYPE_REVISION}")
+set (wsjtx_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}${BUILD_TYPE_REVISION}+tern")
 
 #
 # project information
@@ -378,6 +378,22 @@ set (wsjt_FSRCS
   lib/ft8_decode.f90
   lib/ft4_decode.f90
   lib/fst4_decode.f90
+  # TERN HF weak-signal mode (vendored from the TERN reference implementation;
+  # modules in dependency order, then the WSJT-X glue and TX/RX shims)
+  lib/tern/tern_kinds.f90
+  lib/tern/tern_params.f90
+  lib/tern/tern_rng.f90
+  lib/tern/tern_bits.f90
+  lib/tern/tern_audio.f90
+  lib/tern/tern_polar.f90
+  lib/tern/tern_frame.f90
+  lib/tern/tern_mod.f90
+  lib/tern/tern_channel.f90
+  lib/tern/tern_demod.f90
+  lib/tern/tern_glue.f90
+  lib/tern/tern_modem.f90
+  lib/tern/tern_decode.f90
+  lib/tern/gentern.f90
   lib/get_q3list.f90
   lib/jt9_decode.f90
   lib/options.f90
@@ -1401,6 +1417,9 @@ target_link_libraries (ft4sim wsjt_fort wsjt_cxx)
 add_executable (ft4sim_mult lib/ft4/ft4sim_mult.f90)
 target_link_libraries (ft4sim_mult wsjt_fort wsjt_cxx)
 
+add_executable (ternsim lib/tern/ternsim.f90)
+target_link_libraries (ternsim wsjt_fort wsjt_cxx)
+
 add_executable (fst4sim lib/fst4/fst4sim.f90)
 target_link_libraries (fst4sim wsjt_fort wsjt_cxx)
 if (WIN32)
@@ -2003,7 +2022,7 @@ set (CPACK_MONOLITHIC_INSTALL 1)
 set (CPACK_PACKAGE_NAME "${CMAKE_PROJECT_NAME}")
 set (CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 set (CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
-set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}${BUILD_TYPE_REVISION}")
+set (CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}${BUILD_TYPE_REVISION}+tern")
 
 if (WIN32)
   set (CPACK_GENERATOR "NSIS")

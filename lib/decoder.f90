@@ -11,6 +11,7 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
   use ft4_decode
   use fst4_decode
   use q65_decode
+  use tern_decode
 
 !ft8md added 3 uses below
   use ft8_mod1, only : ndecodes,allmessages,allsnrs,allfreq,mycall12_0,         &
@@ -58,6 +59,10 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
      integer :: decoded
   end type counting_q65_decoder
 
+  type, extends(tern_decoder) :: counting_tern_decoder
+     integer :: decoded
+  end type counting_tern_decoder
+
   logical first,firstsd !ft8md
   logical(1) lhoundprev !ft8md
   integer nutc,ndelay
@@ -86,7 +91,8 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
   type(counting_ft8_decodervar) :: my_ft8var
   type(counting_ft4_decoder) :: my_ft4
   type(counting_fst4_decoder) :: my_fst4
-  type(counting_q65_decoder) :: my_q65  
+  type(counting_q65_decoder) :: my_q65
+  type(counting_tern_decoder) :: my_tern
 
   if(.not.params%newdat .and. params%ntr.gt.ntr0) go to 800
   ntr0=params%ntr
@@ -112,6 +118,7 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
   my_ft4%decoded = 0
   my_fst4%decoded = 0
   my_q65%decoded = 0
+  my_tern%decoded = 0
   my_ft8var%xdtt=0.
 
   ncandall=0           !ft8md
@@ -1257,7 +1264,7 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
      ndepth=iand(params%ndepth,3)
      iwspr=1
      lprinthash22=.false.
-     if(params%nmode.eq.242) lprinthash22=.true. 
+     if(params%nmode.eq.242) lprinthash22=.true.
      call timer('dec_fst4',0)
      call my_fst4%decode(fst4_decoded,id2,params%nutc,                &
           params%nQSOProgress,params%nfa,params%nfb,                  &
@@ -1265,6 +1272,17 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
           params%ntol,params%emedelay,logical(params%nagain),         &
           logical(params%lapcqonly),mycall,hiscall,iwspr,lprinthash22)
      call timer('dec_fst4',1)
+     go to 800
+  endif
+
+  if(params%nmode.eq.250) then
+     ! We're in TERN mode
+     ndepth=iand(params%ndepth,3)
+     call timer('dec_tern',0)
+     call my_tern%decode(tern_decoded,id2,params%nutc,params%nfa,      &
+          params%nfb,params%nfqso,params%ntol,params%nsubmode,ndepth,  &
+          params%ntr,params%ntr*12000)
+     call timer('dec_tern',1)
      go to 800
   endif
 
@@ -1381,7 +1399,7 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
 ! JT65 is not yet producing info for nsynced, ndecoded.
 800 ndecoded = my_jt4%decoded + my_jt65%decoded + my_jt9%decoded +       &
          my_ft8%decoded + my_ft8var%decodedvar + my_ft4%decoded +        &
-         my_fst4%decoded + my_q65%decoded
+         my_fst4%decoded + my_q65%decoded + my_tern%decoded
   if(params%lmultift8 .and. params%nmode.eq.8) then
      if(params%nzhsym.eq.41) ndec41=0
      if(params%nzhsym.eq.46) ndec46=ndecoded
@@ -1904,6 +1922,58 @@ contains
 
     return
   end subroutine fst4_decoded
+
+  subroutine tern_decoded (this,nutc,sync,nsnr,dt,freq,decoded,nap,    &
+       qual,ntrperiod,fmid,w50)
+
+    use tern_decode
+    implicit none
+
+    class(tern_decoder), intent(inout) :: this
+    integer, intent(in) :: nutc
+    real, intent(in) :: sync
+    integer, intent(in) :: nsnr
+    real, intent(in) :: dt
+    real, intent(in) :: freq
+    character(len=37), intent(in) :: decoded
+    integer, intent(in) :: nap
+    real, intent(in) :: qual
+    integer, intent(in) :: ntrperiod
+    real, intent(in) :: fmid
+    real, intent(in) :: w50
+
+    character*37 decoded0
+    character*70 line
+    character*2 annot
+
+    decoded0=decoded
+    annot='  '
+    if(nap.gt.0) write(annot,'(a1,i1)') 'x',min(nap,9)   ! combine depth
+    if(ntrperiod.lt.60) then
+       write(line,1001) nutc,nsnr,dt,nint(freq),decoded0,annot
+1001   format(i6.6,i4,f5.1,i5,' ` ',1x,a37,1x,a2)
+       if(ios13.eq.0) write(13,1002) nutc,nint(sync),nsnr,dt,freq,0,decoded0
+1002   format(i6.6,i4,i5,f6.1,f8.0,i4,3x,a37,' TERN')
+    else
+       write(line,1003) nutc,nsnr,dt,nint(freq),decoded0,annot
+1003   format(i4.4,i4,f5.1,i5,' ` ',1x,a37,1x,a2)
+       if(ios13.eq.0) write(13,1004) nutc,nint(sync),nsnr,dt,freq,0,decoded0
+1004   format(i4.4,i4,i5,f6.1,f8.0,i4,3x,a37,' TERN')
+    endif
+
+    write(*,1005) line
+1005 format(a70)
+
+    call flush(6)
+    if(ios13.eq.0) call flush(13)
+
+    select type(this)
+    type is (counting_tern_decoder)
+       this%decoded = this%decoded + 1
+    end select
+
+    return
+  end subroutine tern_decoded
 
   subroutine q65_decoded (this,nutc,snr1,nsnr,dt,freq,decoded,idec,   &
        nused,ntrperiod)

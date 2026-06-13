@@ -147,6 +147,12 @@ extern "C" {
   void gen_fst4wave_(int itone[], int* nsym, int* nsps, int* nwave, float* fsample,
                        int* hmod, float* f0, int* icmplx, float xjunk[], float wave[]);
 
+  void gentern_(char* msg, int* ichk, char* msgsent, int itone[], int* nsubmode,
+                fortran_charlen_t, fortran_charlen_t);
+
+  void gen_ternwave_(int itone[], int* nsym, int* nsps, float* fsample, float* f0,
+                     float wave[], int* nsubmode);
+
   void genwave_(int itone[], int* nsym, int* nsps, int* nwave, float* fsample,
                 double* toneSpacing, float* f0, int* icmplx, float xjunk[], float wave[]);
 
@@ -731,6 +737,7 @@ MainWindow::MainWindow(QDir const& temp_directory, bool multiple,
   ui->actionEcho->setActionGroup(modeGroup);
   ui->actionMSK144->setActionGroup(modeGroup);
   ui->actionQ65->setActionGroup(modeGroup);
+  ui->actionTERN->setActionGroup(modeGroup);
   ui->actionFreqCal->setActionGroup(modeGroup);
 
   QActionGroup* saveGroup = new QActionGroup(this);
@@ -2218,6 +2225,14 @@ void MainWindow::fixStop()
     } else {
       m_hsymStop=stop[i];
     }
+  } else if(m_mode=="TERN") {
+    // half-symbol step = (m_nsps/2)/12000 = 0.288 s (m_nsps=6912). Fire just
+    // after the frame (1 s lead + 27.2 s Mode A / 54.4 s Mode B) completes,
+    // including the final Costas anchor, clamped below the slot end.
+    double frame_end = 1.0 + (m_nSubMode==1 ? 54.4 : 27.2) + 0.6;
+    m_hsymStop = int(frame_end / 0.288);
+    int hmax = int(m_TRperiod / 0.288) - 2;
+    if(m_hsymStop > hmax) m_hsymStop = hmax;
   }
 }
 
@@ -4387,9 +4402,11 @@ void MainWindow::setup_status_bar (bool vhf)
     QString t{m_mode + " " + submode};
     if(m_mode=="Q65") t=m_mode + "-" + QString::number(m_TRperiod) + submode;
     mode_label.setText (t);
+  } else if (m_mode=="TERN") {
+    mode_label.setText (m_mode + " " + QChar('A' + m_nSubMode));  // TERN A / TERN B
   } else {
     mode_label.setText (m_mode);
-  } 
+  }
   if ("JT9" == m_mode) {
     mode_label.setStyleSheet ("QLabel{color: #000000; background-color: #ff6ec7}");
   } else if ("JT4" == m_mode) {
@@ -4410,6 +4427,8 @@ void MainWindow::setup_status_bar (bool vhf)
     mode_label.setStyleSheet ("QLabel{color: #000000; background-color: #99ff66}");
   } else if ("FST4W" == m_mode) {
     mode_label.setStyleSheet ("QLabel{color: #000000; background-color: #6699ff}");
+  } else if ("TERN" == m_mode) {
+    mode_label.setStyleSheet ("QLabel{color: #000000; background-color: #ffcc33}");
   } else if ("FreqCal" == m_mode) {
     mode_label.setStyleSheet ("QLabel{color: #000000; background-color: #ff9933}");
   }
@@ -5453,6 +5472,7 @@ void MainWindow::decode()                                       //decode()
   }
   if(m_mode=="FST4") dec_data.params.nmode=240;
   if(m_mode=="FST4W") dec_data.params.nmode=241;
+  if(m_mode=="TERN") dec_data.params.nmode=250;
   dec_data.params.ntxmode=dec_data.params.nmode;   // Is this used any more?
   dec_data.params.ntrperiod=m_TRperiod;
   dec_data.params.nsubmode=m_nSubMode;
@@ -8027,6 +8047,16 @@ void MainWindow::guiUpdate()
           double toneSpacing=fsample/nsps4;
           genwave_(const_cast<int *>(itone),&nsym,&nsps4,&nwave,
                    &fsample,&toneSpacing,&f0,&icmplx,foxcom_.wave,foxcom_.wave);
+        }
+        if(m_mode=="TERN") {
+          int nsubmode=m_nSubMode;                  // 0 = Mode A, 1 = Mode B
+          gentern_(message,&ichk,msgsent,const_cast<int *>(itone),&nsubmode,(FCL)37,(FCL)37);
+          int nsym=85;
+          int nsps=15360;                           // 48 kHz samples/symbol, Mode A (0.32 s)
+          if(nsubmode==1) nsps=30720;               // Mode B (0.64 s)
+          float fsample=48000.0;
+          float f0=ui->TxFreqSpinBox->value() - m_XIT;
+          gen_ternwave_(const_cast<int *>(itone),&nsym,&nsps,&fsample,&f0,foxcom_.wave,&nsubmode);
         }
 
         if(SpecOp::EU_VHF==m_specOp) {
@@ -10837,6 +10867,43 @@ void MainWindow::on_actionFST4_triggered()
   chk_FST4_freq_range();
 }
 
+void MainWindow::on_actionTERN_triggered()
+{
+  m_mode="TERN";
+  ui->actionTERN->setChecked(true);
+  m_bFast9=false;
+  m_bFastMode=false;
+  WSPR_config(false);
+  switch_mode (Modes::TERN);
+  m_fastGraph->hide();
+  m_wideGraph->show();
+  m_nsps=6912;                   //For symspec only (same as the other slow modes)
+  m_FFTSize = m_nsps / 2;
+  if (m_tci_audio) Q_EMIT m_config.transceiver_blocksize (m_FFTSize);
+  else Q_EMIT FFTSize (m_FFTSize);
+  ui->lh_decodes_title_label->setText(tr ("Band Activity"));
+  ui->rh_decodes_title_label->setText(tr ("Rx Frequency"));
+  //                       sbSubmode (pos 15) shown for A/B selection
+  //                           0123456789012345678901234567890123456 7
+  displayWidgets(nWidgets("11101100010011110001000000010000001100"));
+  setup_status_bar(false);
+  ui->cbAutoSeq->setChecked(true);
+  ui->sbSubmode->setMinimum(0);
+  ui->sbSubmode->setMaximum(1);              // 0 = TERN Mode A, 1 = TERN Mode B
+  ui->sbSubmode->setToolTip("TERN submode: 0 = Mode A (30 s slot), 1 = Mode B (60 s slot)");
+  ui->sbTR->values ({30, 60, 120});          // 27.2 s / 54.4 s frames fit these slots
+  ui->sbTR->setValue (m_settings->value ("TRPeriod_TERN", 30).toInt());
+  m_wideGraph->setMode(m_mode);
+  m_wideGraph->setPeriod(m_TRperiod,m_nsps);
+  m_wideGraph->setRxFreq(ui->RxFreqSpinBox->value());
+  m_wideGraph->setTol(ui->sbFtol->value());
+  m_wideGraph->setTxFreq(ui->TxFreqSpinBox->value());
+  QTimer::singleShot (50, [=] {on_sbTR_valueChanged (ui->sbTR->value());});
+  QTimer::singleShot (50, [=] {on_sbSubmode_valueChanged (ui->sbSubmode->value());});
+  ui->txFirstCheckBox->setEnabled(true);
+  statusChanged();
+}
+
 void MainWindow::on_actionFST4W_triggered()
 {
   m_mode="FST4W";
@@ -12709,6 +12776,21 @@ void MainWindow::transmit (double snr)
     }
   }
 
+  if (m_mode == "TERN") {
+    toneSpacing=-2.0;                     //Transmit a pre-computed, filtered waveform.
+    double nsps=15360.0/4.0;             //framesPerSymbol at 12 kHz, Mode A (0.32 s)
+    if(m_nSubMode==1) nsps=30720.0/4.0;  //Mode B (0.64 s)
+    double f0=ui->TxFreqSpinBox->value() - m_XIT;
+    if (m_tci_audio) {
+      Q_EMIT m_config.transceiver_modulator_start(m_mode, NUM_TERN_SYMBOLS,nsps,f0,toneSpacing,
+             true,false,snr,m_TRperiod);
+    } else {
+      Q_EMIT sendMessage (m_mode, NUM_TERN_SYMBOLS,nsps,f0,toneSpacing,
+                          m_soundOutput,m_config.audio_output_channel(),
+                          true, false, snr, m_TRperiod);
+    }
+  }
+
   if (m_mode == "JT9") {
     int nsub=pow(2,m_nSubMode);
     int nsps[]={480,240,120,60};
@@ -13029,7 +13111,7 @@ void::MainWindow::VHF_features_enabled(bool b)
 void MainWindow::on_sbTR_valueChanged(int value)
 {
   //  if(!m_bFastMode and n>m_nSubMode) m_MinW=m_nSubMode;
-  if(m_bFastMode or m_mode=="FreqCal" or m_mode=="FST4" or m_mode=="FST4W" or m_mode=="Q65") {
+  if(m_bFastMode or m_mode=="FreqCal" or m_mode=="FST4" or m_mode=="FST4W" or m_mode=="Q65" or m_mode=="TERN") {
     m_TRperiod = value;
     if (m_mode == "FST4" || m_mode == "FST4W" || m_mode=="Q65")
       {
@@ -13120,6 +13202,8 @@ void MainWindow::on_sbSubmode_valueChanged(int n)
     QString t{m_mode + " " + submode};
     if(m_mode=="Q65") t=m_mode + "-" + QString::number(m_TRperiod) + submode;
     mode_label.setText (t);
+  } else if (m_mode=="TERN") {
+    mode_label.setText (m_mode + " " + QChar('A' + m_nSubMode));
   } else {
     mode_label.setText (m_mode);
   }
@@ -15314,6 +15398,7 @@ void MainWindow::set_mode (QString const& mode)
     else if ("JT9" == mode) on_actionJT9_triggered ();
     else if ("JT65" == mode) on_actionJT65_triggered ();
     else if ("Q65" == mode) on_actionQ65_triggered ();
+    else if ("TERN" == mode) on_actionTERN_triggered ();
     else if ("FreqCal" == mode) on_actionFreqCal_triggered ();
     else if ("MSK144" == mode) on_actionMSK144_triggered ();
     else if ("WSPR" == mode) on_actionWSPR_triggered ();

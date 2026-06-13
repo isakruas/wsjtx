@@ -9,7 +9,17 @@
  \$$      \$$  \$$$$$$   \$$$$$$     \$$        \$$   \$$
                                                          
                                                          
-Copyright 2001 - 2025 by Joe Taylor, K1JT, and the WSJT Development Team
+Copyright 2001 - 2026 by Joe Taylor, K1JT, and the WSJT Development Team
+
+                     Release: WSJT-X 3.0.1+tern
+                            June 13, 2026
+                      -------------------------
+
+Derivative build of WSJT-X 3.0.1 adding TERN, an experimental HF
+weak-signal mode (submodes A and B), a "jt9 --tern" decode option, and
+the ternsim validation driver. TERN is vendored from
+https://github.com/isakruas/tern (GPL-3.0-or-later); see lib/tern/README.
+
 
                         Release: WSJT-X 3.0.0-rc1
                           September 15, 2025
