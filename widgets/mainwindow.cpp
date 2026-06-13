@@ -2226,13 +2226,13 @@ void MainWindow::fixStop()
       m_hsymStop=stop[i];
     }
   } else if(m_mode=="TERN") {
-    // half-symbol step = (m_nsps/2)/12000 = 0.288 s (m_nsps=6912). Fire just
-    // after the frame (1 s lead + 27.2 s Mode A / 54.4 s Mode B) completes,
-    // including the final Costas anchor, clamped below the slot end.
-    double frame_end = 1.0 + (m_nSubMode==1 ? 54.4 : 27.2) + 0.6;
-    m_hsymStop = int(frame_end / 0.288);
-    int hmax = int(m_TRperiod / 0.288) - 2;
-    if(m_hsymStop > hmax) m_hsymStop = hmax;
+    // half-symbol step = (m_nsps/2)/12000 = 0.288 s (m_nsps=6912). Fire as late
+    // as the slot allows so the whole frame is captured even with an
+    // imperfectly-aligned (late) Tx/playback start; the frame fills most of the
+    // slot (27.2 s of 30 s, 54.4 s of 60 s), so the margin is small and the
+    // decode must wait for the end. jt9 decodes the snapshot and may finish
+    // into the next period, like the other slow modes.
+    m_hsymStop = int(m_TRperiod / 0.288) - 2;   // ~0.6 s before the slot end
   }
 }
 
