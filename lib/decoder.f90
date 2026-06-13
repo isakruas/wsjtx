@@ -261,7 +261,8 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
            allmessages=""
            allsnrs=0
            allfreq=0.
-           numcores=omp_get_num_procs()
+           numcores=1
+           !$ numcores=omp_get_num_procs()
            nuserthr=params%nmt
 
            numthreads=1                                         ! fallback
@@ -286,8 +287,8 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
               endif
            endif
 
-           call omp_set_dynamic(.false.)
-           call omp_set_nested(.true.)
+           !$ call omp_set_dynamic(.false.)
+           !$ call omp_set_nested(.true.)
 
            nfa=params%nfa
            nfb=params%nfb
@@ -1338,7 +1339,7 @@ subroutine multimode_decoder(ss,id2,params,nfsample)
   newdat65=params%newdat
   newdat9=params%newdat
 
-  call omp_set_dynamic(.true.)
+  !$ call omp_set_dynamic(.true.)
 
 !$omp parallel sections num_threads(2) shared(ndecoded) if(.true.) !iif() needed on Mac
 
