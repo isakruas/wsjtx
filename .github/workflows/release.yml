@@ -23,16 +23,16 @@ jobs:
       # Enforce that the pushed tag's numeric version base
       # matches CMakeLists.txt:55 VERSION (first 3 components). CMake's
       # VERSION field is numeric-only and cannot carry pre-release
-      # suffixes like -rc1 or -beta1, so this check compares the tag
-      # version stripped of any `-<suffix>` against the first three
-      # dotted components of CMakeLists.txt VERSION. Mismatch means the
-      # release commit forgot to bump CMakeLists.txt in lockstep with
-      # the tag; fail fast here before five platform builds burn ~30
-      # minutes of CI.
+      # suffixes like -rc1 or build metadata like +tern, so this check
+      # compares the tag version stripped of any `-<suffix>` or
+      # `+<metadata>` against the first three dotted components of
+      # CMakeLists.txt VERSION. Mismatch means the release commit forgot
+      # to bump CMakeLists.txt in lockstep with the tag; fail fast here
+      # before five platform builds burn ~30 minutes of CI.
       - name: Verify tag ↔ CMakeLists.txt version parity
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#build/v}"
-          TAG_NUMERIC="${TAG_VERSION%%-*}"
+          TAG_NUMERIC="${TAG_VERSION%%[-+]*}"
           CMAKE_VERSION=$(sed -nE 's/^[[:space:]]*VERSION[[:space:]]+([0-9][0-9.]*).*/\1/p' CMakeLists.txt | head -1)
           CMAKE_NUMERIC=$(echo "$CMAKE_VERSION" | awk -F. '{printf "%s.%s.%s", $1, $2, $3}')
           echo "Tag version:        $TAG_VERSION (numeric base: $TAG_NUMERIC)"
